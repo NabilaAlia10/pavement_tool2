@@ -321,20 +321,25 @@ with tab_input:
             if not section_val or section_val in ("", "None"):
                 st.error("Please enter a Section Name / ID before submitting.")
             else:
-                # Add PCI record
-                photo_data_uri = ""
+                # Store photo separately to avoid bloating the dataframe
+                # (large base64 strings in a dataframe get copied on every rerender → memory crash)
+                photo_key = ""
                 if f_photo is not None:
+                    if "photo_store" not in st.session_state:
+                        st.session_state.photo_store = {}
+                    photo_key = f"{section_val}_{f_defect}_{len(st.session_state.photo_store)}"
                     img_bytes = f_photo.getvalue()
                     img_b64 = base64.b64encode(img_bytes).decode("utf-8")
                     mime = "image/png" if f_photo.type == "image/png" else "image/jpeg"
-                    photo_data_uri = f"data:{mime};base64,{img_b64}"
+                    st.session_state.photo_store[photo_key] = f"data:{mime};base64,{img_b64}"
+
                 pci_row = pd.DataFrame([{
                     "Section ID": section_val,
                     "Defect Type": f_defect,
                     "Severity": f_severity,
                     "Area Affected (%)": f_area,
                     "Notes": f_notes,
-                    "Photo": photo_data_uri,
+                    "Photo": photo_key,  # just a small key string, not the image itself
                 }])
                 st.session_state.pci_input = pd.concat(
                     [st.session_state.pci_input, pci_row], ignore_index=True
@@ -351,7 +356,7 @@ with tab_input:
                 st.success(
                     f"✅ Added to **{section_val}**: "
                     f"{f_defect} ({f_severity}, {f_area}%) + IRI {g_iri} m/km"
-                    + (" 📷" if photo_data_uri else "")
+                    + (" 📷" if photo_key else "")
                 )
 
     st.divider()
@@ -366,8 +371,14 @@ with tab_input:
     if st.session_state.pci_input.empty:
         st.info("No PCI records yet. Add your first entry using the form above.")
     else:
-        st.session_state.pci_input = st.data_editor(
-            st.session_state.pci_input,
+        # Resolve photo keys to data URIs just for display — don't store URIs in dataframe
+        display_pci = st.session_state.pci_input.copy()
+        photo_store = st.session_state.get("photo_store", {})
+        display_pci["Photo"] = display_pci["Photo"].map(
+            lambda k: photo_store.get(k, "") if k else ""
+        )
+        edited = st.data_editor(
+            display_pci,
             num_rows="dynamic",
             use_container_width=True,
             column_config={
@@ -385,6 +396,10 @@ with tab_input:
             },
             key="pci_editor",
         )
+        # Write edits back but restore photo keys (not URIs) to keep session state lean
+        if edited is not None:
+            edited["Photo"] = st.session_state.pci_input["Photo"].values[:len(edited)] if len(edited) <= len(st.session_state.pci_input) else edited["Photo"].map(lambda v: "" if v and v.startswith("data:") else v)
+            st.session_state.pci_input = edited
 
     st.markdown("**IRI — Roughness Readings**")
     if st.session_state.iri_input.empty:
