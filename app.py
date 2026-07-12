@@ -36,6 +36,12 @@ CONDITION_COLORS = {
     "Poor": "#C62828",
 }
 
+
+def natural_sort_key(s):
+    """Sort strings naturally: 1,2,3...10 instead of 1,10,2,3."""
+    import re
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', str(s))]
+
 st.markdown("""
 <style>
     .block-container {padding-top: 2rem;}
@@ -232,11 +238,6 @@ with tab_input:
     # SECTION A: Combined PCI + IRI form — PRIMARY WORKFLOW
     # =======================================================================
     st.markdown("### ➕ Add a Section Entry")
-
-    # Collect all existing section IDs with natural sort (1,2,3...10 not 1,10,2,3)
-    def natural_sort_key(s):
-        import re
-        return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', str(s))]
 
     existing_pci_sections = list(set(
         st.session_state.pci_input["Section ID"].dropna().astype(str).tolist()
@@ -524,7 +525,7 @@ with tab_results:
     use_filters = st.toggle("🔎 Filter results", value=False,
                              help="Turn on to narrow down the table by section, condition, or defect type.")
 
-    all_sections = sorted(display_df["Section ID"].dropna().astype(str).unique().tolist())
+    all_sections = sorted(display_df["Section ID"].dropna().astype(str).unique().tolist(), key=natural_sort_key)
     all_defects = sorted(st.session_state.pci_input["Defect Type"].dropna().unique().tolist()) if mode != "IRI" else []
 
     if use_filters:
@@ -628,7 +629,7 @@ with tab_dashboard:
     # -----------------------------------------------------------------
     # Dashboard section filter (opt-in, same pattern as Results tab)
     # -----------------------------------------------------------------
-    all_dash_sections = sorted(chart_df["Section ID"].dropna().astype(str).unique().tolist())
+    all_dash_sections = sorted(chart_df["Section ID"].dropna().astype(str).unique().tolist(), key=natural_sort_key)
     use_dash_filter = st.toggle(
         "🔎 Filter sections", value=False,
         help="Focus the dashboard on specific sections only — leave off to show the full network."
@@ -894,7 +895,7 @@ with tab_planning:
         st.markdown("##### Simulate the Impact of a Maintenance Action")
         st.caption("Pick a section and a maintenance action to see the projected before/after condition.")
 
-        sim_sections = sorted(hybrid_summary["Section ID"].dropna().astype(str).unique().tolist())
+        sim_sections = sorted(hybrid_summary["Section ID"].dropna().astype(str).unique().tolist(), key=natural_sort_key)
         if not sim_sections:
             st.warning("No section data available to simulate.")
         else:
