@@ -284,18 +284,10 @@ with tab_input:
                 "Severity", list(st.session_state.severity_factors.keys()), index=1
             )
         with p3:
-            # Slider sets the value; number_input lets user type precisely.
-            # Both are independent — slider value is used at submission.
-            f_area_slider = st.slider(
+            f_area = st.slider(
                 "Area Affected (%)",
                 min_value=0.0, max_value=100.0, value=5.0, step=0.5,
-            )
-            f_area = st.number_input(
-                "Or type exact value",
-                min_value=0.0, max_value=100.0,
-                value=f_area_slider, step=0.5,
-                help="Type here to override the slider above",
-                label_visibility="collapsed",
+                help="Drag to set value. You can also click on the number shown above the slider to type a precise value directly.",
             )
         f_notes = st.text_input("PCI Notes (optional)", "")
         f_photo = st.file_uploader(
@@ -311,17 +303,10 @@ with tab_input:
         )
         i1, i2 = st.columns(2)
         with i1:
-            g_iri_slider = st.slider(
+            g_iri = st.slider(
                 "IRI (m/km)",
                 min_value=0.0, max_value=10.0, value=2.0, step=0.1,
-                help="Drag to set, or type exact value below. Typical range: 1–6 m/km"
-            )
-            g_iri = st.number_input(
-                "Or type exact IRI value",
-                min_value=0.0, max_value=20.0,
-                value=g_iri_slider, step=0.1,
-                help="Type here to override the slider above (use for values above 10)",
-                label_visibility="collapsed",
+                help="Drag to set value. Click the number shown above the slider to type precisely. For values above 10, type directly. Typical range: 1–6 m/km",
             )
         with i2:
             g_iri_notes = st.text_input("IRI Notes (optional)", "", key="iri_notes_field")
