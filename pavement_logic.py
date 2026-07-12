@@ -8,6 +8,12 @@ in the technical report / video.
 """
 
 import pandas as pd
+import re
+
+
+def _natural_sort_key(s):
+    """Sort strings naturally so 1,2,3...10 instead of 1,10,2,3."""
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', str(s))]
 
 # ---------------------------------------------------------------------------
 # Default lookup tables (editable via the app's sidebar)
@@ -108,7 +114,8 @@ def compute_pci(pci_input_df: pd.DataFrame,
     summary["PCI Condition"] = results.apply(lambda r: r[0])
     summary["PCI Recommendation"] = results.apply(lambda r: r[1])
 
-    return summary.sort_values("Section ID").reset_index(drop=True)
+    summary["_sort_key"] = summary["Section ID"].astype(str).apply(_natural_sort_key)
+    return summary.sort_values("_sort_key").drop(columns="_sort_key").reset_index(drop=True)
 
 
 def compute_iri(iri_input_df: pd.DataFrame,
@@ -135,7 +142,8 @@ def compute_iri(iri_input_df: pd.DataFrame,
     summary["IRI Condition"] = results.apply(lambda r: normalize_condition_label(r[0]))
     summary["IRI Recommendation"] = results.apply(lambda r: r[1])
 
-    return summary.sort_values("Section ID").reset_index(drop=True)
+    summary["_sort_key"] = summary["Section ID"].astype(str).apply(_natural_sort_key)
+    return summary.sort_values("_sort_key").drop(columns="_sort_key").reset_index(drop=True)
 
 
 def compute_hybrid(pci_summary: pd.DataFrame, iri_summary: pd.DataFrame,
@@ -149,7 +157,9 @@ def compute_hybrid(pci_summary: pd.DataFrame, iri_summary: pd.DataFrame,
     pci_bands = pci_bands or DEFAULT_PCI_BANDS
     iri_bands = iri_bands or DEFAULT_IRI_BANDS
 
-    merged = pd.merge(pci_summary, iri_summary, on="Section ID", how="outer").sort_values("Section ID")
+    merged = pd.merge(pci_summary, iri_summary, on="Section ID", how="outer")
+    merged["_sort_key"] = merged["Section ID"].astype(str).apply(_natural_sort_key)
+    merged = merged.sort_values("_sort_key").drop(columns="_sort_key")
 
     def worse_of(pci_cond, iri_cond):
         if pd.isna(pci_cond) and pd.isna(iri_cond):
