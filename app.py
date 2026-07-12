@@ -576,6 +576,18 @@ with tab_results:
         height=min(45 * (len(filtered_df) + 1), 450),
     )
 
+    # PCI = 0 explanatory note — shown only when relevant
+    if "PCI" in filtered_df.columns and (filtered_df["PCI"] == 0).any():
+        zero_sections = filtered_df[filtered_df["PCI"] == 0]["Section ID"].tolist()
+        st.warning(
+            f"⚠️ **PCI = 0 for section(s): {', '.join(str(s) for s in zero_sections)}** — "
+            f"This indicates a severely distressed pavement where the combined deduct values of all "
+            f"recorded defects exceed 100. Under this tool's simplified linear deduction method "
+            f"(adapted from ASTM D6433), PCI is floored at 0 when total deduct > 100. "
+            f"In practice, a PCI of 0 means the section has effectively failed and requires "
+            f"immediate major rehabilitation or reconstruction."
+        )
+
     # Quick stats row (reflects filtered results)
     counts = filtered_df[final_cond_col].value_counts()
     cols = st.columns(4)
