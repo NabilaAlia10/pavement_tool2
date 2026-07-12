@@ -249,29 +249,32 @@ with tab_input:
         key=natural_sort_key
     )
 
-    with st.form("combined_entry_form", clear_on_submit=True):
-        st.markdown("#### 📍 Section Identification")
-        sec_col1, sec_col2 = st.columns(2)
-        with sec_col1:
-            section_mode = st.radio(
-                "Section", ["Existing section", "New section"],
-                horizontal=True, key="section_mode_radio"
-            )
-        with sec_col2:
-            if section_mode == "Existing section" and all_existing_sections:
-                f_section = st.selectbox(
-                    "Select Section",
-                    options=all_existing_sections,
-                    help="Pick a section you've already entered data for"
-                )
-            else:
-                f_section = st.text_input(
-                    "Section Name / ID",
-                    placeholder="e.g. Jalan Bako KM3, Section A, S01",
-                    help="Type any name or code — road name, chainage, or a simple number"
-                )
+    # --- Section selection OUTSIDE the form so it persists correctly ---
+    st.markdown("#### 📍 Section Identification")
+    NEW_SECTION_SENTINEL = "＋ Type a new section name..."
+    section_options = all_existing_sections + [NEW_SECTION_SENTINEL]
 
-        st.markdown("---")
+    selected_option = st.selectbox(
+        "Section Name / ID",
+        options=section_options,
+        index=len(section_options) - 1 if not all_existing_sections else 0,
+        key="section_selector",
+        help="Pick an existing section, or choose '＋ Type a new section name...' to add a new one",
+    )
+
+    if selected_option == NEW_SECTION_SENTINEL:
+        f_section_outer = st.text_input(
+            "New section name",
+            placeholder="e.g. Jalan Pinang Jawa, Section B, KM5",
+            key="new_section_name_input",
+        )
+    else:
+        f_section_outer = selected_option
+        st.caption(f"Adding data to existing section: **{f_section_outer}**")
+
+    st.markdown("---")
+
+    with st.form("combined_entry_form", clear_on_submit=True):
         st.markdown("#### 🔍 PCI — Defect Observation")
         p1, p2, p3 = st.columns(3)
         with p1:
@@ -328,7 +331,7 @@ with tab_input:
         )
 
         if submitted:
-            section_val = f_section.strip() if isinstance(f_section, str) else str(f_section)
+            section_val = f_section_outer.strip() if isinstance(f_section_outer, str) else str(f_section_outer)
             if not section_val or section_val in ("", "None"):
                 st.error("Please enter a Section Name / ID before submitting.")
             else:
